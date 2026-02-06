@@ -27,29 +27,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        set({
-          user: session.user,
-          profile: profile || null,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-
-        await supabase
-          .from('profiles')
-          .update({ last_login_at: new Date().toISOString() })
-          .eq('id', session.user.id);
-      } else {
-        set({ isLoading: false });
-      }
-
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        try {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -60,7 +38,50 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             user: session.user,
             profile: profile || null,
             isAuthenticated: true,
+            isLoading: false,
           });
+
+          supabase
+            .from('profiles')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('id', session.user.id)
+            .then()
+            .catch((err) => console.error('Failed to update last_login_at:', err));
+        } catch (err) {
+          console.error('Failed to fetch profile:', err);
+          set({
+            user: session.user,
+            profile: null,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        }
+      } else {
+        set({ isLoading: false });
+      }
+
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle()
+            .then(({ data: profile }) => {
+              set({
+                user: session.user,
+                profile: profile || null,
+                isAuthenticated: true,
+              });
+            })
+            .catch((err) => {
+              console.error('Failed to fetch profile on sign in:', err);
+              set({
+                user: session.user,
+                profile: null,
+                isAuthenticated: true,
+              });
+            });
         } else if (event === 'SIGNED_OUT') {
           set({
             user: null,

@@ -16,11 +16,17 @@ import { ClustersPage } from '@/pages/ClustersPage';
 import { AdminPage } from '@/pages/AdminPage';
 
 function App() {
-  const { initialize, isLoading } = useAuthStore();
+  const { initialize, isLoading } = useAuthStore((state) => ({
+    initialize: state.initialize,
+    isLoading: state.isLoading,
+  }));
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    const initAuth = async () => {
+      await initialize();
+    };
+    initAuth();
+  }, []);
 
   if (isLoading) {
     return (
