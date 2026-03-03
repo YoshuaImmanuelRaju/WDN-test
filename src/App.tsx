@@ -1,132 +1,115 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
-import { useAuthStore } from '@/stores/authStore';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { LoginPage } from '@/pages/LoginPage';
-import { RegisterPage } from '@/pages/RegisterPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-import { NetworksPage } from '@/pages/NetworksPage';
-import { UploadNetworkPage } from '@/pages/UploadNetworkPage';
-import { NetworkDetailPage } from '@/pages/NetworkDetailPage';
-import { AlertsPage } from '@/pages/AlertsPage';
-import { ClustersPage } from '@/pages/ClustersPage';
-import { AdminPage } from '@/pages/AdminPage';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import LoginPage from './pages/LoginPage';
+import UserDashboard from './pages/User/Dashboard';
+import Visualizer from './pages/User/Visualizer';
+import DemandManager from './pages/User/DemandManager';
+import ExportData from './pages/User/ExportData';
+import AdminDashboard from './pages/Admin/Dashboard';
+import AlgorithmManager from './pages/Admin/AlgorithmManager';
+import EPANETSimulator from './pages/Admin/EPANETSimulator';
+import KeyManagement from './pages/Admin/KeyManagement';
+import ClusterAnalysis from './pages/Admin/ClusterAnalysis';
+import WSNSimulator from './pages/User/WSNSimulator';
 
-function App() {
-  const { initialize, isLoading } = useAuthStore((state) => ({
-    initialize: state.initialize,
-    isLoading: state.isLoading,
-  }));
+function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode; allowedRole?: 'user' | 'admin' }) {
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const initAuth = async () => {
-      await initialize();
-    };
-    initAuth();
-  }, []);
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+  if (allowedRole && user.role !== allowedRole) {
+    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard'} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/" replace />;
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/" element={<LoginPage />} />
 
           <Route
-            path="/dashboard"
+            path="/user/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRole="user">
                 <DashboardLayout>
-                  <DashboardPage />
+                  <Routes>
+                    <Route path="dashboard" element={<UserDashboard />} />
+                    <Route path="visualizer" element={<Visualizer />} />
+                    <Route path="wsn" element={<WSNSimulator />} />
+                    <Route path="demand" element={<DemandManager />} />
+                    <Route path="export" element={<ExportData />} />
+                    <Route path="*" element={<Navigate to="/user/dashboard" replace />} />
+                  </Routes>
                 </DashboardLayout>
               </ProtectedRoute>
             }
           />
 
-          <Route
-            path="/networks"
+          {/* <Route
+            path="/admin/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRole="admin">
                 <DashboardLayout>
-                  <NetworksPage />
+                  <Routes>
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="algorithm" element={<AlgorithmManager />} />
+                    <Route path="simulator" element={<EPANETSimulator />} />
+                    <Route path="keys" element={<KeyManagement />} />
+                    <Route path="analysis" element={<ClusterAnalysis />} />
+                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                  </Routes>
                 </DashboardLayout>
               </ProtectedRoute>
             }
           />
 
-          <Route
-            path="/networks/upload"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <UploadNetworkPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/networks/:id"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <NetworkDetailPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/alerts"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <AlertsPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/clusters"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <ClustersPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireAdmin>
-                <DashboardLayout>
-                  <AdminPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} /> */}
         </Routes>
       </BrowserRouter>
-    </QueryClientProvider>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </AuthProvider>
   );
 }
 

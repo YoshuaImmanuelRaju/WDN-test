@@ -1,0 +1,34 @@
+{
+  "alerts": [
+    {
+      "id": "alert1",
+      "type": "leak",
+      "severity": "high",
+      "location": "Node 2",
+      "networkId": "net1",
+      "timestamp": "2025-10-05T14:30:00Z",
+      "message": "Potential leak detected at Node 2 - Pressure drop of 15%",
+      "acknowledged": false
+    },
+    {
+      "id": "alert2",
+      "type": "leak",
+      "severity": "medium",
+      "location": "Pipe e4",
+      "networkId": "net1",
+      "timestamp": "2025-10-05T16:45:00Z",
+      "message": "Unusual flow pattern detected in Pipe e4",
+      "acknowledged": false
+    },
+    {
+      "id": "alert3",
+      "type": "leak",
+      "severity": "low",
+      "location": "Node 1",
+      "networkId": "net2",
+      "timestamp": "2025-10-06T08:15:00Z",
+      "message": "Minor pressure fluctuation at Node 1",
+      "acknowledged": true
+    }
+  ]
+}
