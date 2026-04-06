@@ -16,7 +16,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://wdn-test-10zjcnewn-yoshua-immanuel-rajus-projects.vercel.app"
+        "https://wdn-test.vercel.app/"
     ],  # frontend URL
     allow_credentials=True,
     allow_methods=["*"],
