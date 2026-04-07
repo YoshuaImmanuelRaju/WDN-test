@@ -4,7 +4,7 @@ import { LogOut, Waypoints, Bell } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -14,7 +14,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
+    <nav className="bg-cardDark border-b border-borderDark text-textPrimary">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -22,8 +22,8 @@ export default function Navbar() {
               <Waypoints className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Water Network System</h1>
-              <p className="text-xs text-gray-500 capitalize">{user?.role} Portal</p>
+              <h1 className="text-xl font-bold text-blue-400 tracking-wide">Water Network System</h1>
+              <p className="text-xs text-gray-400"> User Portal </p>
             </div>
           </div>
 
@@ -34,10 +34,10 @@ export default function Navbar() {
             </button>
 
             <div className="flex items-center space-x-3">
-              <div className="text-right">
+              {/* <div className="text-right">
                 <p className="text-sm font-medium text-gray-800 capitalize">{user?.username}</p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-              </div>
+              </div> */}
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"

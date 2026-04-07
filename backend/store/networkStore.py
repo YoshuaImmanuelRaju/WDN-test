@@ -1,0 +1,3 @@
+# store/networkStore.py
+
+networks = []

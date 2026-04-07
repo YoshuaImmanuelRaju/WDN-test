@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Upload, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNetworkStore } from '../../store/networkStore';
 
@@ -15,44 +14,8 @@ export default function DemandManager() {
     (n) => n.id === activeNetworkId
   );
 
-  const [selectedNodeId, setSelectedNodeId] =
-    useState<string>('');
-  const [demand, setDemand] = useState<string>('');
-
-  const handleUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await fetch(
-        'http://127.0.0.1:8000/networks/upload',
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!res.ok) throw new Error();
-
-      const network = await res.json();
-
-      useNetworkStore
-        .getState()
-        .addNetwork({
-          ...network,
-          name: file.name,
-        });
-
-      toast.success('Network uploaded');
-    } catch {
-      toast.error('Upload failed');
-    }
-  };
+  const [selectedNodeId, setSelectedNodeId] = useState('');
+  const [demand, setDemand] = useState('');
 
   const handleSaveDemand = () => {
     if (!activeNetwork || !selectedNodeId) return;
@@ -72,34 +35,22 @@ export default function DemandManager() {
     ) ?? [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-slate-950 min-h-screen text-slate-200">
       <h1 className="text-3xl font-bold">
         Demand Manager
       </h1>
 
-      {/* Upload */}
-      <div className="bg-white border rounded-xl p-6">
-        <h2 className="font-semibold mb-4">
-          Upload EPANET (.inp)
-        </h2>
-        <input
-          type="file"
-          accept=".inp"
-          onChange={handleUpload}
-        />
-      </div>
-
-      {/* Network selector */}
-      <div className="bg-white border rounded-xl p-6">
-        <h2 className="font-semibold mb-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h2 className="font-semibold mb-4 text-slate-300">
           Select Network
         </h2>
+
         <select
           value={activeNetworkId ?? ''}
           onChange={(e) =>
             setActiveNetwork(e.target.value)
           }
-          className="border px-3 py-2 rounded w-full"
+          className="bg-slate-800 border border-slate-700 text-slate-200 px-3 py-2 rounded w-full"
         >
           <option value="" disabled>
             Select network
@@ -112,11 +63,10 @@ export default function DemandManager() {
         </select>
       </div>
 
-      {/* Node demand editor */}
       {activeNetwork && (
-        <div className="bg-white border rounded-xl p-6 space-y-4">
-          <h2 className="font-semibold">
-            Edit Node Demand
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+          <h2 className="font-semibold text-slate-300">
+            Edit Junction Demand
           </h2>
 
           <select
@@ -124,7 +74,6 @@ export default function DemandManager() {
             onChange={(e) => {
               const id = e.target.value;
               setSelectedNodeId(id);
-
               const node =
                 activeNetwork.nodes.find(
                   (n) => n.id === id
@@ -133,10 +82,10 @@ export default function DemandManager() {
                 node?.demand?.toString() ?? '0'
               );
             }}
-            className="border px-3 py-2 rounded w-full"
+            className="bg-slate-800 border border-slate-700 text-slate-200 px-3 py-2 rounded w-full"
           >
             <option value="" disabled>
-              Select junction node
+              Select junction
             </option>
             {junctions.map((n) => (
               <option key={n.id} value={n.id}>
@@ -147,40 +96,21 @@ export default function DemandManager() {
 
           <input
             type="number"
-            placeholder="Demand"
             value={demand}
             onChange={(e) =>
               setDemand(e.target.value)
             }
-            className="border px-3 py-2 rounded w-full"
+            className="bg-slate-800 border border-slate-700 text-slate-200 px-3 py-2 rounded w-full"
           />
 
           <button
             onClick={handleSaveDemand}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            className="bg-blue-600 text-slate-100 px-4 py-2 rounded hover:bg-blue-700"
           >
             Save Demand
           </button>
         </div>
       )}
-
-      {/* Uploaded networks list */}
-      <div className="bg-white border rounded-xl p-6">
-        <h2 className="font-semibold mb-4">
-          Uploaded Networks
-        </h2>
-        <ul className="space-y-2">
-          {networks.map((n) => (
-            <li
-              key={n.id}
-              className="flex items-center gap-2 border p-2 rounded"
-            >
-              <FileText className="w-4 h-4" />
-              {n.name}
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }
