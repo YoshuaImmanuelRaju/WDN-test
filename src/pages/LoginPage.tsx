@@ -91,7 +91,7 @@ export default function LoginPage() {
             Demo Credentials:
           </p>
           <div className="space-y-1 text-xs text-gray-400">
-            <p><strong className="text-gray-300">Admin:</strong> admin / admin123</p>
+            {/* <p><strong className="text-gray-300">Admin:</strong> admin / admin123</p> */}
             <p><strong className="text-gray-300">User:</strong> user / user123</p>
           </div>
         </div>
