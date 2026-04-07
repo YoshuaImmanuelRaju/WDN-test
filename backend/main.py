@@ -14,7 +14,10 @@ app = FastAPI(
 # ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # frontend URL
+    allow_origins=[
+        "http://localhost:5173"
+        "https://water-distribution-network-vno3.vercel.app/"
+    ],  # frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
