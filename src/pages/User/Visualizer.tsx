@@ -34,7 +34,7 @@ function Visualizer() {
 
     try {
       const res = await fetch(
-        'http://127.0.0.1:8000/networks/upload',
+        'https://water-network-backend.onrender.com/networks/upload',
         {
           method: 'POST',
           body: formData,
