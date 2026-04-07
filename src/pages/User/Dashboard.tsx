@@ -59,18 +59,24 @@ export default function Dashboard() {
   const getMeasured = (nodeId: string, hour = '0') =>
     activeNetwork?.measured_pressures?.[hour]?.[nodeId] ?? 0;
 
-  /* ================= STATS ================= */
+  /* ================= STATS (NETWORK SPECIFIC) ================= */
   const stats = useMemo(() => {
+    if (!activeNetwork) {
+      return {
+        totalNetworks: networks.length,
+        totalNodes: 0,
+        totalEdges: 0,
+        totalAlerts: 0,
+      };
+    }
+
     return {
       totalNetworks: networks.length,
-      totalNodes: networks.reduce((s, n) => s + n.nodes.length, 0),
-      totalEdges: networks.reduce((s, n) => s + n.edges.length, 0),
-      totalAlerts: networks.reduce(
-        (s, n) => s + (n.alerts?.length ?? 0),
-        0
-      ),
+      totalNodes: activeNetwork.nodes.length,
+      totalEdges: activeNetwork.edges.length,
+      totalAlerts: activeNetwork.alerts?.length ?? 0,
     };
-  }, [networks]);
+  }, [networks, activeNetwork]);
 
   /* ================= GRAPH DATA ================= */
   const chartData = useMemo(() => {
@@ -83,9 +89,21 @@ export default function Dashboard() {
     }));
   }, [activeNetwork, selectedNode]);
 
-  const avgPressure =
-    chartData.reduce((s, d) => s + d.simulated, 0) /
-      (chartData.length || 1) || 0;
+  /* ================= AVG PRESSURE (NETWORK BASED) ================= */
+  const avgPressure = useMemo(() => {
+    if (!activeNetwork) return 0;
+
+    let total = 0;
+    let count = 0;
+
+    activeNetwork.nodes.forEach((n) => {
+      const p = getPressure(n.id);
+      total += p;
+      count++;
+    });
+
+    return count ? total / count : 0;
+  }, [activeNetwork]);
 
   /* ================= SYSTEM HEALTH ================= */
   const healthData = useMemo(() => {
@@ -127,10 +145,18 @@ export default function Dashboard() {
     ];
   }, [activeNetwork]);
 
+  if (!activeNetwork) {
+    return (
+      <div className="text-center text-slate-500 mt-20">
+        No network selected. Upload or choose a network.
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-8 bg-slate-950 min-h-screen text-slate-300">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-slate-200">
@@ -142,11 +168,11 @@ export default function Dashboard() {
         </div>
 
         <div className="text-sm text-slate-400">
-          Last sync: {new Date().toLocaleTimeString()}
+          Network: {activeNetwork.name}
         </div>
       </div>
 
-      {/* ================= SELECTORS ================= */}
+      {/* SELECTORS */}
       <div className="bg-slate-900 p-4 rounded-xl flex gap-4 flex-wrap">
         <select
           value={activeNetworkId ?? ''}
@@ -161,22 +187,20 @@ export default function Dashboard() {
           ))}
         </select>
 
-        {activeNetwork && (
-          <select
-            value={selectedNode ?? ''}
-            onChange={(e) => setSelectedNode(e.target.value)}
-            className="bg-slate-800 text-slate-300 p-2 rounded"
-          >
-            {activeNetwork.nodes.map((node) => (
-              <option key={node.id} value={node.id}>
-                {node.id}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          value={selectedNode ?? ''}
+          onChange={(e) => setSelectedNode(e.target.value)}
+          className="bg-slate-800 text-slate-300 p-2 rounded"
+        >
+          {activeNetwork.nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.id}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* ================= STATS ================= */}
+      {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard icon={<Layers />} label="Networks" value={stats.totalNetworks} />
         <StatCard icon={<Network />} label="Nodes" value={stats.totalNodes} />
@@ -185,133 +209,95 @@ export default function Dashboard() {
         <StatCard icon={<AlertTriangle />} label="Alerts" value={stats.totalAlerts} />
       </div>
 
-      {/* ================= GRAPH + DONUT ================= */}
-      {activeNetwork && selectedNode && (
-        <div className="grid md:grid-cols-3 gap-6">
+      {/* GRAPH + DONUT */}
+      <div className="grid md:grid-cols-3 gap-6">
 
-          {/* GRAPH */}
-          <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-lg mb-4 text-slate-400">
-              Pressure — Node {selectedNode}
-            </h2>
-
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <XAxis
-                  dataKey="hour"
-                  tickFormatter={(h) => `${h}:00`}
-                  interval={0}
-                  stroke="#64748b"
-                  tick={{
-                    fontSize: isSmallScreen ? 9 : 12,
-                    fill: '#94a3b8',
-                  }}
-                  angle={isSmallScreen ? -45 : 0}
-                  textAnchor={isSmallScreen ? 'end' : 'middle'}
-                  height={isSmallScreen ? 60 : 30}
-                />
-                <YAxis stroke="#64748b" />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="simulated"
-                  stroke="#22c55e"
-                  name="Simulated"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="measured"
-                  stroke="#38bdf8"
-                  strokeDasharray="5 5"
-                  name="Measured"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* DONUT */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-lg mb-4 text-slate-400">
-              System Health
-            </h2>
-
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={healthData} dataKey="value" innerRadius={50} outerRadius={80}>
-                  {healthData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-
-            <div className="mt-4 space-y-2 text-sm">
-              {healthData.map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ background: item.color }} />
-                    {item.name}
-                  </span>
-                  <span>
-                    {item.value} ({item.percent}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= NODE TABLE ================= */}
-      {activeNetwork && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h2 className="text-xl mb-4 text-slate-400">
-            Node Status
+        {/* GRAPH */}
+        <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <h2 className="text-lg mb-4 text-slate-400">
+            Pressure — Node {selectedNode}
           </h2>
 
-          <div className="max-h-80 overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 text-left">
-                  <th className="py-2">Node</th>
-                  <th>Type</th>
-                  <th>Pressure</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {activeNetwork.nodes.map((n) => {
-                  const p = getPressure(n.id);
-
-                  let status = 'Healthy';
-                  let color = 'text-emerald-400';
-
-                  if (p < 20) {
-                    status = 'Critical';
-                    color = 'text-red-400';
-                  } else if (p < 30) {
-                    status = 'Warning';
-                    color = 'text-yellow-400';
-                  }
-
-                  return (
-                    <tr
-                      key={n.id}
-                      className="border-b border-slate-800 hover:bg-slate-800 transition"
-                    >
-                      <td className="py-2 font-medium">{n.id}</td>
-                      <td>{n.type}</td>
-                      <td>{p.toFixed(1)} m</td>
-                      <td className={color}>{status}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <XAxis dataKey="hour" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
+              <Tooltip />
+              <Line type="monotone" dataKey="simulated" stroke="#22c55e" />
+              <Line type="monotone" dataKey="measured" stroke="#38bdf8" strokeDasharray="5 5" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-      )}
+
+        {/* DONUT */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <h2 className="text-lg mb-4 text-slate-400">
+            System Health
+          </h2>
+
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={healthData} dataKey="value" innerRadius={50} outerRadius={80}>
+                {healthData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* NODE TABLE */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h2 className="text-xl mb-4 text-slate-400">
+          Node Status
+        </h2>
+
+        <div className="max-h-80 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800 text-slate-500 text-left">
+                <th className="py-2">Node</th>
+                <th>Type</th>
+                <th>Pressure</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {activeNetwork.nodes.map((n) => {
+                const p = getPressure(n.id);
+
+                let status = 'Healthy';
+                let color = 'text-emerald-400';
+
+                if (p < 20) {
+                  status = 'Critical';
+                  color = 'text-red-400';
+                } else if (p < 30) {
+                  status = 'Warning';
+                  color = 'text-yellow-400';
+                }
+
+                return (
+                  <tr
+                    key={n.id}
+                    onClick={() => setSelectedNode(n.id)}
+                    className={`border-b border-slate-800 hover:bg-slate-800 cursor-pointer ${
+                      p < 20 ? 'bg-red-900/20' : ''
+                    }`}
+                  >
+                    <td className="py-2 font-medium">{n.id}</td>
+                    <td>{n.type}</td>
+                    <td>{p.toFixed(1)} m</td>
+                    <td className={color}>{status}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
