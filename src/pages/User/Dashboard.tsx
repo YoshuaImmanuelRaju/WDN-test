@@ -1,40 +1,438 @@
+// import {
+//   AlertTriangle,
+//   Network,
+//   Gauge,
+//   Layers,
+// } from 'lucide-react';
+
+// import { useNetworkStore } from '../../store/networkStore';
+// import { useMemo, useState, useEffect } from 'react';
+
+// import {
+//   PieChart,
+//   Pie,
+//   Cell,
+//   LineChart,
+//   Line,
+//   XAxis,
+//   YAxis,
+//   Tooltip,
+//   ResponsiveContainer,
+// } from 'recharts';
+
+// /* ================= SERVICES ================= */
+// import { generateAlerts } from '../../services/analyticsService';
+// import { generateAnomalies } from '../../services/anomalyService';
+// import { generateInsights } from '../../services/insightService';
+// import AlertPriorityPanel from '../../components/AlertPriorityPanel';
+// /* ================= COMPONENTS ================= */
+// import AlertsPanel from '../../components/AlertsPanel';
+// import AnomalyPanel from '../../components/AnomalyPanel';
+
+// export default function Dashboard() {
+//   const { networks, activeNetworkId, setActiveNetwork } =
+//     useNetworkStore();
+
+//   const activeNetwork = networks.find(
+//     (n) => n.id === activeNetworkId
+//   );
+
+//   /* ================= NODE ================= */
+//   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     if (activeNetwork?.nodes.length) {
+//       setSelectedNode(activeNetwork.nodes[0].id);
+//     }
+//   }, [activeNetwork]);
+
+//   /* ================= TIME ================= */
+//   const [time, setTime] = useState(new Date());
+//   useEffect(() => {
+//     const interval = setInterval(
+//       () => setTime(new Date()),
+//       1000
+//     );
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   /* ================= HELPERS ================= */
+//   const getPressure = (nodeId: string, hour = '0') =>
+//     activeNetwork?.pressures?.[hour]?.[nodeId] ?? 0;
+
+//   const getMeasured = (nodeId: string, hour = '0') =>
+//     activeNetwork?.measured_pressures?.[hour]?.[nodeId] ?? 0;
+
+//   /* ================= GRAPH DATA ================= */
+//   const chartData = useMemo(() => {
+//     if (!activeNetwork || !selectedNode) return [];
+
+//     return Array.from({ length: 24 }, (_, h) => ({
+//       hour: h,
+//       simulated: getPressure(selectedNode, String(h)),
+//       measured: getMeasured(selectedNode, String(h)),
+//     }));
+//   }, [activeNetwork, selectedNode]);
+
+//   /* ================= AVG PRESSURE ================= */
+//   const avgPressure = useMemo(() => {
+//     if (!activeNetwork) return 0;
+
+//     let total = 0;
+//     activeNetwork.nodes.forEach((n) => {
+//       total += getPressure(n.id);
+//     });
+
+//     return total / (activeNetwork.nodes.length || 1);
+//   }, [activeNetwork]);
+
+//   /* ================= ALERTS ================= */
+//   const alerts = useMemo(() => {
+//     return generateAlerts(
+//       activeNetwork,
+//       (id) => getPressure(id),
+//       (id) => getMeasured(id),
+//       avgPressure
+//     );
+//   }, [activeNetwork, avgPressure]);
+
+//   /* ================= ANOMALIES ================= */
+//   const anomalies = useMemo(() => {
+//     return activeNetwork
+//       ? generateAnomalies(activeNetwork)
+//       : [];
+//   }, [activeNetwork]);
+//   /* ================= INSIGHTS ================= */
+// const insights = useMemo(() => {
+//   return generateInsights(alerts, anomalies);
+// }, [alerts, anomalies]);
+
+//   /* ================= SYSTEM HEALTH ================= */
+//   const healthData = useMemo(() => {
+//     if (!activeNetwork) {
+//       return {
+//         healthy: 0,
+//         warning: 0,
+//         critical: 0,
+//         total: 0,
+//         healthyPct: '0',
+//         warningPct: '0',
+//         criticalPct: '0',
+//       };
+//     }
+
+//     let healthy = 0,
+//       warning = 0,
+//       critical = 0;
+
+//     activeNetwork.nodes.forEach((n) => {
+//       const p = getPressure(n.id);
+
+//       if (p < 20) critical++;
+//       else if (p < 30) warning++;
+//       else healthy++;
+//     });
+
+//     const total = healthy + warning + critical || 1;
+
+//     return {
+//       healthy,
+//       warning,
+//       critical,
+//       total,
+//       healthyPct: ((healthy / total) * 100).toFixed(1),
+//       warningPct: ((warning / total) * 100).toFixed(1),
+//       criticalPct: ((critical / total) * 100).toFixed(1),
+//     };
+//   }, [activeNetwork]);
+
+//   /* ================= NO NETWORK ================= */
+//   if (!activeNetwork) {
+//     return (
+//       <div className="text-center text-slate-500 mt-20">
+//         No network selected
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="p-6 space-y-8 bg-slate-950 min-h-screen text-slate-300">
+
+//       {/* HEADER */}
+//       <div className="flex justify-between items-center">
+//         {/* ================= SELECTORS ================= */}
+//       <div className="bg-slate-900 p-4 rounded-xl flex gap-4 flex-wrap border border-slate-800">
+
+//         {/* NETWORK SELECT */}
+//         <select
+//           value={activeNetworkId ?? ''}
+//           onChange={(e) => setActiveNetwork(e.target.value)}
+//           className="bg-slate-800 text-slate-300 p-2 rounded"
+//         >
+//           <option value="">Select Network</option>
+//           {networks.map((n) => (
+//             <option key={n.id} value={n.id}>
+//               {n.name}
+//             </option>
+//           ))}
+//         </select>
+
+//         {/* NODE SELECT */}
+//         <select
+//           value={selectedNode ?? ''}
+//           onChange={(e) => setSelectedNode(e.target.value)}
+//           className="bg-slate-800 text-slate-300 p-2 rounded"
+//         >
+//           {activeNetwork.nodes.map((node) => (
+//             <option key={node.id} value={node.id}>
+//               {node.id}
+//             </option>
+//           ))}
+//         </select>
+
+//       </div>
+//         <div>
+//           <h1 className="text-3xl font-bold text-slate-200">
+//             Dashboard
+//           </h1>
+//           <p className="text-slate-500">
+//             Digital Twin Water Monitoring
+//           </p>
+//         </div>
+
+//         <div className="text-sm text-slate-400">
+//           {time.toLocaleTimeString()}
+//         </div>
+//       </div>
+
+//       {/* ================= PRESSURE (TOP) ================= */}
+//       {selectedNode && (
+//         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+//           <h2 className="text-lg mb-4 text-slate-400">
+//             Pressure — Node {selectedNode}
+//           </h2>
+
+//           <ResponsiveContainer width="100%" height={300}>
+//             <LineChart data={chartData}>
+//               <XAxis dataKey="hour" />
+//               <YAxis />
+//               <Tooltip />
+//               <Line
+//                 dataKey="simulated"
+//                 stroke="#22c55e"
+//               />
+//               <Line
+//                 dataKey="measured"
+//                 stroke="#38bdf8"
+//                 strokeDasharray="5 5"
+//               />
+//             </LineChart>
+//           </ResponsiveContainer>
+//         </div>
+//       )}
+
+//       {/* ================= SYSTEM OVERVIEW ================= */}
+//       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+
+//         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+//           <div className="text-sm text-slate-500">Networks</div>
+//           <div className="text-2xl font-bold">
+//             {networks.length}
+//           </div>
+//         </div>
+
+//         <div className="bg-red-900/20 p-4 rounded-xl border border-red-800">
+//           <div className="text-sm text-red-400">
+//             Active Alerts
+//           </div>
+//           <div className="text-2xl font-bold text-red-300">
+//             {alerts.length}
+//           </div>
+//         </div>
+
+//         <div className="bg-yellow-900/20 p-4 rounded-xl border border-yellow-800">
+//           <div className="text-sm text-yellow-400">
+//             Critical Nodes
+//           </div>
+//           <div className="text-2xl font-bold text-yellow-300">
+//             {healthData.critical}
+//           </div>
+//         </div>
+
+//         <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-800">
+//           <div className="text-sm text-blue-400">
+//             Leak Suspects
+//           </div>
+//           <div className="text-2xl font-bold text-blue-300">
+//             {anomalies.filter(a => a.type === 'LEAK').length}
+//           </div>
+//         </div>
+
+//         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+//           <div className="text-sm text-slate-500">
+//             Avg Pressure
+//           </div>
+//           <div className="text-2xl font-bold text-emerald-400">
+//             {avgPressure.toFixed(1)} m
+//           </div>
+//         </div>
+
+//       </div>
+
+//       {/* ================= ALERTS + SYSTEM HEALTH ================= */}
+//       <div className="grid md:grid-cols-2 gap-6">
+
+//         {/* ALERTS */}
+//         <AlertPriorityPanel insights={insights} />
+
+//         {/* SYSTEM HEALTH */}
+//         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+//           <h2 className="text-lg mb-4 text-slate-400">
+//             System Health Overview
+//           </h2>
+
+//           <div className="space-y-3">
+//             <div className="grid grid-cols-2 gap-4">
+
+//   {/* LEFT: TEXT STATS */}
+//   <div className="space-y-3">
+
+//     <div className="flex justify-between">
+//       <span className="text-green-400">Healthy</span>
+//       <span>
+//         {healthData.healthy} ({healthData.healthyPct}%)
+//       </span>
+//     </div>
+
+//     <div className="flex justify-between">
+//       <span className="text-yellow-400">Warning</span>
+//       <span>
+//         {healthData.warning} ({healthData.warningPct}%)
+//       </span>
+//     </div>
+
+//     <div className="flex justify-between">
+//       <span className="text-red-400">Critical</span>
+//       <span>
+//         {healthData.critical} ({healthData.criticalPct}%)
+//       </span>
+//     </div>
+
+//     <div className="pt-2 text-sm text-slate-500">
+//       Total Nodes: {healthData.total}
+//     </div>
+
+//   </div>
+
+//   {/* RIGHT: PIE CHART */}
+//   <div className="h-40">
+//     <ResponsiveContainer width="100%" height="100%">
+//       <PieChart>
+//         <Pie
+//           data={[
+//             { name: 'Healthy', value: healthData.healthy, color: '#22c55e' },
+//             { name: 'Warning', value: healthData.warning, color: '#facc15' },
+//             { name: 'Critical', value: healthData.critical, color: '#ef4444' },
+//           ]}
+//           dataKey="value"
+//         >
+//           {[
+//             '#22c55e',
+//             '#facc15',
+//             '#ef4444'
+//           ].map((color, i) => (
+//             <Cell key={i} fill={color} />
+//           ))}
+//         </Pie>
+//       </PieChart>
+//     </ResponsiveContainer>
+//   </div>
+
+// </div>
+
+//             {/* <div className="flex justify-between">
+//               <span className="text-green-400">
+//                 Healthy Nodes
+//               </span>
+//               <span>
+//                 {healthData.healthy} ({healthData.healthyPct}%)
+//               </span>
+//             </div>
+
+//             <div className="flex justify-between">
+//               <span className="text-yellow-400">
+//                 Warning Nodes
+//               </span>
+//               <span>
+//                 {healthData.warning} ({healthData.warningPct}%)
+//               </span>
+//             </div>
+
+//             <div className="flex justify-between">
+//               <span className="text-red-400">
+//                 Critical Nodes
+//               </span>
+//               <span>
+//                 {healthData.critical} ({healthData.criticalPct}%)
+//               </span>
+//             </div>
+
+//             <div className="pt-2 text-sm text-slate-500">
+//               Total Nodes: {healthData.total}
+//             </div> */}
+
+//           </div>
+//         </div>
+
+//       </div>
+
+//       {/* ================= ANOMALIES ================= */}
+//       <AnomalyPanel anomalies={anomalies} />
+
+//     </div>
+//   );
+// }
+
 import {
   AlertTriangle,
   Network,
   Gauge,
   Layers,
 } from 'lucide-react';
+
 import { useNetworkStore } from '../../store/networkStore';
-import StatCard from '../../components/StatCard';
 import { useMemo, useState, useEffect } from 'react';
+
 import {
+  PieChart,
+  Pie,
+  Cell,
   LineChart,
   Line,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 
-/* ================= ADDED IMPORTS ================= */
+/* ================= SERVICES ================= */
 import { generateAlerts } from '../../services/analyticsService';
-import AlertsPanel from '../../components/AlertsPanel';
+import { generateAnomalies } from '../../services/anomalyService';
+import { generateInsights } from '../../services/insightService';
+
+/* ================= COMPONENTS ================= */
+import AlertPriorityPanel from '../../components/AlertPriorityPanel';
+import AnomalyPanel from '../../components/AnomalyPanel';
 
 export default function Dashboard() {
-  const {
-    networks,
-    activeNetworkId,
-    setActiveNetwork,
-  } = useNetworkStore();
+  const { networks, activeNetworkId, setActiveNetwork } =
+    useNetworkStore();
 
   const activeNetwork = networks.find(
     (n) => n.id === activeNetworkId
   );
 
-  /* ================= NODE SELECTION ================= */
+  /* ================= NODE ================= */
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,54 +441,22 @@ export default function Dashboard() {
     }
   }, [activeNetwork]);
 
-  /* ================= LIVE TIME ================= */
+  /* ================= TIME ================= */
   const [time, setTime] = useState(new Date());
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
+    const interval = setInterval(
+      () => setTime(new Date()),
+      1000
+    );
     return () => clearInterval(interval);
   }, []);
 
-  /* ================= RESPONSIVE ================= */
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsSmallScreen(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  /* ================= SAFE ACCESS ================= */
+  /* ================= HELPERS ================= */
   const getPressure = (nodeId: string, hour = '0') =>
     activeNetwork?.pressures?.[hour]?.[nodeId] ?? 0;
 
   const getMeasured = (nodeId: string, hour = '0') =>
     activeNetwork?.measured_pressures?.[hour]?.[nodeId] ?? 0;
-
-  /* ================= STATS (NETWORK-SPECIFIC) ================= */
-  const stats = useMemo(() => {
-    if (!activeNetwork) {
-      return {
-        totalNetworks: networks.length,
-        totalNodes: 0,
-        totalEdges: 0,
-        totalAlerts: 0,
-      };
-    }
-
-    return {
-      totalNetworks: networks.length,
-      totalNodes: activeNetwork.nodes.length,
-      totalEdges: activeNetwork.edges.length,
-      totalAlerts: 0, // will override below
-    };
-  }, [networks, activeNetwork]);
 
   /* ================= GRAPH DATA ================= */
   const chartData = useMemo(() => {
@@ -103,27 +469,53 @@ export default function Dashboard() {
     }));
   }, [activeNetwork, selectedNode]);
 
-  /* ================= NETWORK AVG PRESSURE ================= */
+  /* ================= AVG PRESSURE ================= */
   const avgPressure = useMemo(() => {
     if (!activeNetwork) return 0;
 
-    const nodeIds = activeNetwork.nodes.map((n) => n.id);
-
     let total = 0;
-    let count = 0;
-
-    nodeIds.forEach((id) => {
-      const p = getPressure(id);
-      total += p;
-      count++;
+    activeNetwork.nodes.forEach((n) => {
+      total += getPressure(n.id);
     });
 
-    return count ? total / count : 0;
+    return total / (activeNetwork.nodes.length || 1);
   }, [activeNetwork]);
+
+  /* ================= ALERTS ================= */
+  const alerts = useMemo(() => {
+    return generateAlerts(
+      activeNetwork,
+      (id) => getPressure(id),
+      (id) => getMeasured(id),
+      avgPressure
+    );
+  }, [activeNetwork, avgPressure]);
+
+  /* ================= ANOMALIES ================= */
+  const anomalies = useMemo(() => {
+    return activeNetwork
+      ? generateAnomalies(activeNetwork)
+      : [];
+  }, [activeNetwork]);
+
+  /* ================= INSIGHTS ================= */
+  const insights = useMemo(() => {
+    return generateInsights(alerts, anomalies);
+  }, [alerts, anomalies]);
 
   /* ================= SYSTEM HEALTH ================= */
   const healthData = useMemo(() => {
-    if (!activeNetwork) return [];
+    if (!activeNetwork) {
+      return {
+        healthy: 0,
+        warning: 0,
+        critical: 0,
+        total: 0,
+        healthyPct: '0',
+        warningPct: '0',
+        criticalPct: '0',
+      };
+    }
 
     let healthy = 0,
       warning = 0,
@@ -139,43 +531,22 @@ export default function Dashboard() {
 
     const total = healthy + warning + critical || 1;
 
-    return [
-      {
-        name: 'Healthy',
-        value: healthy,
-        percent: ((healthy / total) * 100).toFixed(1),
-        color: '#22c55e',
-      },
-      {
-        name: 'Warning',
-        value: warning,
-        percent: ((warning / total) * 100).toFixed(1),
-        color: '#facc15',
-      },
-      {
-        name: 'Critical',
-        value: critical,
-        percent: ((critical / total) * 100).toFixed(1),
-        color: '#ef4444',
-      },
-    ];
+    return {
+      healthy,
+      warning,
+      critical,
+      total,
+      healthyPct: ((healthy / total) * 100).toFixed(1),
+      warningPct: ((warning / total) * 100).toFixed(1),
+      criticalPct: ((critical / total) * 100).toFixed(1),
+    };
   }, [activeNetwork]);
 
-  /* ================= ADDED ALERTS LOGIC ================= */
-  const alerts = useMemo(() => {
-    return generateAlerts(
-      activeNetwork,
-      (id) => getPressure(id),
-      (id) => getMeasured(id),
-      avgPressure
-    );
-  }, [activeNetwork, avgPressure]);
-
-  /* ================= NO NETWORK STATE ================= */
+  /* ================= NO NETWORK ================= */
   if (!activeNetwork) {
     return (
       <div className="text-center text-slate-500 mt-20">
-        No network selected. Upload or choose a network.
+        No network selected
       </div>
     );
   }
@@ -183,179 +554,167 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-8 bg-slate-950 min-h-screen text-slate-300">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div className="flex justify-between items-center">
+
+        {/* SELECTORS */}
+        <div className="bg-slate-900 p-4 rounded-xl flex gap-4 flex-wrap border border-slate-800">
+
+          <select
+            value={activeNetworkId ?? ''}
+            onChange={(e) => setActiveNetwork(e.target.value)}
+            className="bg-slate-800 text-slate-300 p-2 rounded"
+          >
+            <option value="">Select Network</option>
+            {networks.map((n) => (
+              <option key={n.id} value={n.id}>
+                {n.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedNode ?? ''}
+            onChange={(e) => setSelectedNode(e.target.value)}
+            className="bg-slate-800 text-slate-300 p-2 rounded"
+          >
+            {activeNetwork.nodes.map((node) => (
+              <option key={node.id} value={node.id}>
+                {node.id}
+              </option>
+            ))}
+          </select>
+
+        </div>
+
         <div>
           <h1 className="text-3xl font-bold text-slate-200">
             Dashboard
           </h1>
           <p className="text-slate-500">
-            Digital Twin Water Network Monitoring
+            Digital Twin Water Monitoring
           </p>
         </div>
 
         <div className="text-sm text-slate-400">
-          Last sync: {time.toLocaleTimeString()}
+          {time.toLocaleTimeString()}
         </div>
       </div>
 
-      {/* ================= SELECTORS ================= */}
-      <div className="bg-slate-900 p-4 rounded-xl flex gap-4 flex-wrap">
-        <select
-          value={activeNetworkId ?? ''}
-          onChange={(e) => setActiveNetwork(e.target.value)}
-          className="bg-slate-800 text-slate-300 p-2 rounded"
-        >
-          <option value="">Select Network</option>
-          {networks.map((n) => (
-            <option key={n.id} value={n.id}>
-              {n.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={selectedNode ?? ''}
-          onChange={(e) => setSelectedNode(e.target.value)}
-          className="bg-slate-800 text-slate-300 p-2 rounded"
-        >
-          {activeNetwork.nodes.map((node) => (
-            <option key={node.id} value={node.id}>
-              {node.id}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* ================= STATS ================= */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard icon={<Layers />} label="Networks" value={stats.totalNetworks} />
-        <StatCard icon={<Network />} label="Nodes" value={stats.totalNodes} />
-        <StatCard icon={<Network />} label="Pipes" value={stats.totalEdges} />
-        <StatCard icon={<Gauge />} label="Avg Pressure" value={`${avgPressure.toFixed(1)} m`} />
-        <StatCard icon={<AlertTriangle />} label="Alerts" value={alerts.length} />
-      </div>
-
-      {/* ================= ADDED ALERT PANEL ================= */}
-      <AlertsPanel alerts={alerts} />
-
-      {/* ================= GRAPH + DONUT ================= */}
+      {/* PRESSURE */}
       {selectedNode && (
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <h2 className="text-lg mb-4 text-slate-400">
+            Pressure — Node {selectedNode}
+          </h2>
 
-          {/* GRAPH */}
-          <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-lg mb-4 text-slate-400">
-              Pressure — Node {selectedNode}
-            </h2>
-
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <XAxis
-                  dataKey="hour"
-                  tickFormatter={(h) => `${h}:00`}
-                  interval={0}
-                  stroke="#64748b"
-                  tick={{
-                    fontSize: isSmallScreen ? 9 : 12,
-                    fill: '#94a3b8',
-                  }}
-                  angle={isSmallScreen ? -45 : 0}
-                  textAnchor={isSmallScreen ? 'end' : 'middle'}
-                  height={isSmallScreen ? 60 : 30}
-                />
-                <YAxis stroke="#64748b" />
-                <Tooltip />
-                <Line type="monotone" dataKey="simulated" stroke="#22c55e" />
-                <Line type="monotone" dataKey="measured" stroke="#38bdf8" strokeDasharray="5 5" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* DONUT */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-lg mb-4 text-slate-400">
-              System Health
-            </h2>
-
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={healthData} dataKey="value" innerRadius={50} outerRadius={80}>
-                  {healthData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-
-            <div className="mt-4 space-y-2 text-sm">
-              {healthData.map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ background: item.color }} />
-                    {item.name}
-                  </span>
-                  <span>
-                    {item.value} ({item.percent}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <XAxis dataKey="hour" />
+              <YAxis />
+              <Tooltip />
+              <Line dataKey="simulated" stroke="#22c55e" />
+              <Line dataKey="measured" stroke="#38bdf8" strokeDasharray="5 5" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
 
-      {/* ================= NODE TABLE ================= */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <h2 className="text-xl mb-4 text-slate-400">
-          Node Status
-        </h2>
+      {/* SYSTEM OVERVIEW */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
 
-        <div className="max-h-80 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-500 text-left">
-                <th className="py-2">Node</th>
-                <th>Type</th>
-                <th>Pressure</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {activeNetwork.nodes.map((n) => {
-                const p = getPressure(n.id);
-
-                let status = 'Healthy';
-                let color = 'text-emerald-400';
-
-                if (p < 20) {
-                  status = 'Critical';
-                  color = 'text-red-400';
-                } else if (p < 30) {
-                  status = 'Warning';
-                  color = 'text-yellow-400';
-                }
-
-                return (
-                  <tr
-                    key={n.id}
-                    onClick={() => setSelectedNode(n.id)}
-                    className={`cursor-pointer border-b border-slate-800 hover:bg-slate-800 transition ${
-                      p < 20 ? 'bg-red-900/20' : ''
-                    }`}
-                  >
-                    <td className="py-2 font-medium">{n.id}</td>
-                    <td>{n.type}</td>
-                    <td>{p.toFixed(1)} m</td>
-                    <td className={color}>{status}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <div className="text-sm text-slate-500">Networks</div>
+          <div className="text-2xl font-bold">{networks.length}</div>
         </div>
+
+        <div className="bg-red-900/20 p-4 rounded-xl border border-red-800">
+          <div className="text-sm text-red-400">Active Alerts</div>
+          <div className="text-2xl font-bold text-red-300">{alerts.length}</div>
+        </div>
+
+        <div className="bg-yellow-900/20 p-4 rounded-xl border border-yellow-800">
+          <div className="text-sm text-yellow-400">Critical Nodes</div>
+          <div className="text-2xl font-bold text-yellow-300">{healthData.critical}</div>
+        </div>
+
+        <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-800">
+          <div className="text-sm text-blue-400">Leak Suspects</div>
+          <div className="text-2xl font-bold text-blue-300">
+            {anomalies.filter(a => a.type === 'LEAK').length}
+          </div>
+        </div>
+
+        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <div className="text-sm text-slate-500">Avg Pressure</div>
+          <div className="text-2xl font-bold text-emerald-400">
+            {avgPressure.toFixed(1)} m
+          </div>
+        </div>
+
       </div>
+
+      {/* PRIORITY ALERTS + HEALTH */}
+      <div className="grid md:grid-cols-2 gap-6">
+
+        <AlertPriorityPanel insights={insights} />
+
+        {/* SYSTEM HEALTH (unchanged) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <h2 className="text-lg mb-4 text-slate-400">
+            System Health Overview
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4">
+
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-green-400">Healthy</span>
+                <span>{healthData.healthy} ({healthData.healthyPct}%)</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-yellow-400">Warning</span>
+                <span>{healthData.warning} ({healthData.warningPct}%)</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-red-400">Critical</span>
+                <span>{healthData.critical} ({healthData.criticalPct}%)</span>
+              </div>
+
+              <div className="text-sm text-slate-500">
+                Total Nodes: {healthData.total}
+              </div>
+            </div>
+
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Healthy', value: healthData.healthy },
+                      { name: 'Warning', value: healthData.warning },
+                      { name: 'Critical', value: healthData.critical },
+                    ]}
+                    dataKey="value"
+                  >
+                    {['#22c55e', '#facc15', '#ef4444'].map((c, i) => (
+                      <Cell key={i} fill={c} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* ANOMALIES */}
+      <AnomalyPanel anomalies={anomalies} />
+
     </div>
   );
 }
